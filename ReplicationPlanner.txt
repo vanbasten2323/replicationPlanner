@@ -1,0 +1,41 @@
+Replication Planner
+
+1. Problem
+Given a source image in a region and a list of publishing regions, we need to find the fastest and most reliable strategy to copy the source image to all the publishing regions under some constraints. 
+
+Input:
+1. Source image: This is the source image that we are replication from. The source image contains an OS disk image and some data disk images, all of which are in the form of snapshot. This input will be the read SAS of the image snapshot.
+2. Publishing regions: The publishing regions can be all the azure regions in the world or a subset of them. So it is possible to replicate snapshot within a region. Besides the name of the region, we also know the coordinates of each region. So it possible to have the pairwise distance in advance as well.
+
+Constraints:
+- Replicating images within a region can be fast (how fast). However, replicating images across regions can be slow (how slow?). 
+- It is not possible to replicate to a lot of regions from one source. It has a upper limit(TODO: we should test to find out the exact number.). And this number may be subject to change depending on the health of the region, the health and the type (standard/premium) of the storage account where the source image resides. So, this will be one of the tuning parameter to the algorithm.
+
+Objective: Come up with a replication strategy to minimize the replication time.
+
+
+
+
+
+
+Questions:
+1. Could there be any in-region replication since all the publishing regions must be distinct?
+Yes. We can replicate snapshot within a region in order to create more source image copies.
+
+TODO: need to get the data (how fast to copy within a region and across region)
+https://docs.microsoft.com/en-us/azure/virtual-machines/scripts/virtual-machines-windows-powershell-sample-copy-snapshot-to-same-or-different-subscription
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
