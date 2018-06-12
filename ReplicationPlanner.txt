@@ -22,7 +22,7 @@ Questions:
 1. Could there be any in-region replication since all the publishing regions must be distinct?
 Yes. We can replicate snapshot within a region in order to create more source image copies.
 
-TODO: need to get the data (how fast to copy within a region and across region)
+TODO: need to get the data (how fast to copy within a region and across region). Can follow the powershell below to measure the distance:
 https://docs.microsoft.com/en-us/azure/virtual-machines/scripts/virtual-machines-windows-powershell-sample-copy-snapshot-to-same-or-different-subscription
 
 
