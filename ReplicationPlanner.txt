@@ -9,10 +9,48 @@ Input:
 
 Constraints:
 - Replicating images within a region can be fast (how fast). However, replicating images across regions can be slow (how slow?). 
-- It is not possible to replicate to a lot of regions from one source. It has a upper limit(TODO: we should test to find out the exact number.). And this number may be subject to change depending on the health of the region, the health and the type (standard/premium) of the storage account where the source image resides. So, this will be one of the tuning parameter to the algorithm.
+- We can only replicate to a certain number of copies. It has a upper limit(TODO: we should test to find out the exact number.). And this number may be subject to change depending on the health of the region, the health and the type (standard/premium) of the storage account where the source image resides. So, this will be one of the tuning parameter to the algorithm.
+- Geo-pairs. It is faster to copy a snapshot from a region to its geo-pair region, as opposed to copying it to a non-geo-pair region. 
 
 Objective: Come up with a replication strategy to minimize the replication time.
 
+
+
+2. Data
+In order to create a design for the replication planner, we need some data. 
+- We need to see how fast it is (in seconds) to copy a snapshot within a region and how fast it is to copy a snapshot across regions.To get the data, we can use the below powershell script to get a rough measurement: https://docs.microsoft.com/en-us/azure/virtual-machines/scripts/virtual-machines-windows-powershell-sample-copy-snapshot-to-same-or-different-subscription. We need the data to define the distance between each two regions. Those distances will be used in the algorithm to design the replication plan.
+- we need to measure how one source and multiple targets replication performs, as opposed to one source and one target replication.
+- we need to find out the upper limit of how many replications can come from one source snapshot to other regions.
+
+3. Solution
+
+
+3.1 Option1
+If we need to replicate to n regions, then we first make another (n-1) copies of the source snapshots in the source region. Then we have n source snapshots. For each target region, we use one source snapshot. Then all the long running replication (cross region replication) happens in parallel. Once a target region has a copy of the snapshot, we can start the in-region replication if necessary. Meanwhile, after all target region has at least one copy of the snapshot, we can delete the (n-1) temperary source snapshots.
+
+3.2 Option2
+It is hard to do the replication in phases. If we do in phases, then in phase1 we replicate the source image to k target regions. Then in phase2, we have (k+1) sources and we are able to replicate to k*(k+1) regions. In that case, we don't need to wait for all the phase1 replication to complete in order to start the phase2.
+
+Our aim is to have a strategy that can be reused and extensible in the future. In order to do that, we can define a data structure for each region:
+regionNode: {
+    string name;
+    long longitude;
+    long latitude;
+    ReplicationStatus copyStatus;
+    List<regionNode> nextRegionNodes
+}
+
+Enum ReplicationStatus{
+    NotStarted;
+    InProgress;
+    Completed;
+}
+
+Our algorithm should output a graph denoted by using the above data structure. All the rest of work is to write code to traverse the graph and kick off the replication whenever available.
+
+To provide an initial solution to provide a basic capability of replicating images to all the Azure regions, we can do this: we replicate step by step. We choose a constant number k, meaning how many target we replicate to in each step. In the first step, we choose k nearest target regions: target_0 ... target_(k-1). Then k replication job will be created and run in parallel: (source, target_0) ... (source, target_(k-1). In the second step, we would have (k+1) source image and we can replication to another k*(k+1) target regions. In this way, we can form a graph and feed this graph to  the above graph traversal code.
+
+In the future, if we find out a better way to form the graph, the only thing we need to change is how we form the graph, which is the essense of the task, and out put the graph in the above data structure. All the rest remains the same.
 
 
 
@@ -22,8 +60,6 @@ Questions:
 1. Could there be any in-region replication since all the publishing regions must be distinct?
 Yes. We can replicate snapshot within a region in order to create more source image copies.
 
-TODO: need to get the data (how fast to copy within a region and across region). Can follow the powershell below to measure the distance:
-https://docs.microsoft.com/en-us/azure/virtual-machines/scripts/virtual-machines-windows-powershell-sample-copy-snapshot-to-same-or-different-subscription
 
 
 
